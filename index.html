@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProContract - Creador de Contratos para Freelancers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Auth View -->
+    <div id="authView" class="auth-wrapper">
+        <div class="auth-card">
+            <div class="logo-container auth-logo">
+                <div class="logo-icon"></div>
+                <h1>ProContract</h1>
+            </div>
+            <h2>Bienvenido</h2>
+            <p>Inicia sesión o regístrate para gestionar tus contratos.</p>
+            <div class="input-group">
+                <input type="email" id="authEmail" placeholder="Tu correo electrónico" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="authPassword" placeholder="Tu contraseña" required>
+            </div>
+            <button id="loginBtn" class="primary-btn">Entrar / Registrarse</button>
+            <p id="authError" style="color: #ef4444; font-size: 13px; margin-top: 10px; display: none;">Completa los campos.</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appView" style="display: none;">
+        <!-- Sidebar Form -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <div class="logo-icon"></div>
+                <h1>ProContract</h1>
+            </div>
+
+            <div class="user-account-panel">
+                <div class="user-info">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <span id="userEmailDisplay" class="user-email">usuario@correo.com</span>
+                        <span id="userPlanDisplay" class="user-plan badge-free">PLAN GRATUITO</span>
+                    </div>
+                </div>
+                <button id="logoutBtn" class="text-btn">Salir</button>
+            </div>
+
+            <div class="documents-manager">
+                <div class="doc-header-row">
+                    <h3>Mis Contratos</h3>
+                    <span class="doc-count" id="docCountBadge">1/1</span>
+                </div>
+                <button id="newContractBtn" class="secondary-btn"> + Crear Nuevo </button>
+            </div>
+
+            <div class="premium-banner" id="premiumBanner">
+                <div class="banner-content">
+                    <span class="badge">PRO</span>
+                    <h3>Desbloquea Premium</h3>
+                    <p>Contratos ilimitados, cláusulas avanzadas y sin marca de agua.</p>
+                </div>
+                <button id="upgradeBtn" class="upgrade-btn">Actualizar por $2.00</button>
+            </div>
+
+            <form id="contractForm" class="contract-form">
+                <div class="form-section">
+                    <h2>1. Información Básica</h2>
+                    <div class="input-group">
+                        <label for="freelancerName">Tu Nombre / Empresa</label>
+                        <input type="text" id="freelancerName" placeholder="Ej. Juan Pérez" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="clientName">Nombre del Cliente</label>
+                        <input type="text" id="clientName" placeholder="Ej. Empresa SA" required>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>2. Detalles del Proyecto</h2>
+                    <div class="input-group">
+                        <label for="projectName">Nombre del Proyecto</label>
+                        <input type="text" id="projectName" placeholder="Ej. Rediseño web" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="projectDescription">Descripción de los Servicios</label>
+                        <textarea id="projectDescription" placeholder="Describe brevemente lo que vas a realizar..." rows="3" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>3. Términos Mínimos</h2>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="price">Precio Total</label>
+                            <input type="number" id="price" placeholder="1000" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="currency">Moneda</label>
+                            <select id="currency">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="MXN">MXN</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="deadline">Fecha de Entrega</label>
+                        <input type="date" id="deadline" required>
+                    </div>
+                </div>
+
+                <!-- Premium Settings (Locked) -->
+                <div class="form-section premium-section">
+                    <div class="section-header">
+                        <h2>4. Cláusulas Avanzadas</h2>
+                        <span class="pro-lock">PRO</span>
+                    </div>
+                    
+                    <div class="clause-wrapper">
+                        <div class="input-group checkbox-group">
+                            <input type="checkbox" id="clauseIP" disabled>
+                            <label for="clauseIP">Cesión de Propiedad Intelectual</label>
+                        </div>
+                        <div class="clause-customizer" id="customIP" style="display: none;">
+                            <textarea id="textIP" rows="2">Al recibir el pago total, el Freelancer cede al Cliente todos los derechos de propiedad intelectual sobre el trabajo entregado.</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="clause-wrapper">
+                        <div class="input-group checkbox-group">
+                            <input type="checkbox" id="clauseNDA" disabled>
+                            <label for="clauseNDA">Acuerdo de Confidencialidad (NDA)</label>
+                        </div>
+                        <div class="clause-customizer" id="customNDA" style="display: none;">
+                            <textarea id="textNDA" rows="2">Ambas partes acuerdan mantener en estricta confidencialidad toda la información compartida durante el desarrollo del proyecto.</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="clause-wrapper">
+                        <div class="input-group checkbox-group">
+                            <input type="checkbox" id="clauseLateFee" disabled>
+                            <label for="clauseLateFee">Penalización por pago tardío</label>
+                        </div>
+                        <div class="clause-customizer" id="customLateFee" style="display: none;">
+                            <textarea id="textLateFee" rows="2">Los pagos no recibidos dentro de los 7 días posteriores a su vencimiento estarán sujetos a una penalización del 5% mensual.</textarea>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <div class="action-buttons">
+                <button id="printBtn" class="primary-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    Exportar PDF
+                </button>
+            </div>
+        </aside>
+
+        <!-- Preview Area -->
+        <main class="preview-area">
+            <div class="preview-header">
+                <h2>Vista Previa del Contrato</h2>
+                <div class="tier-indicator" id="tierIndicator">Plan Gratuito</div>
+            </div>
+            
+            <div class="document-wrapper">
+                <div class="document" id="contractDoc">
+                    <!-- Watermark for Free version -->
+                    <div class="watermark" id="watermark">GENERADO CON PROCONTRACT FREE</div>
+                    
+                    <div class="doc-header">
+                        <h1 class="doc-title">Contrato de Servicios Freelance</h1>
+                        <p class="doc-date">Fecha: <span id="docCurrentDate">__/__/____</span></p>
+                    </div>
+
+                    <div class="doc-parties">
+                        <p>Este contrato es celebrado entre <strong><span id="docFreelancerName">[Tu Nombre]</span></strong> (en adelante el "Freelancer") y <strong><span id="docClientName">[Nombre del Cliente]</span></strong> (en adelante el "Cliente").</p>
+                    </div>
+
+                    <div class="doc-section">
+                        <h3>1. Descripción de los Servicios</h3>
+                        <p>El Freelancer acuerda realizar los siguientes servicios para el proyecto "<strong><span id="docProjectName">[Nombre del Proyecto]</span></strong>":</p>
+                        <p class="doc-highlight"><span id="docProjectDescription">[Descripción del proyecto]</span></p>
+                    </div>
+
+                    <div class="doc-section">
+                        <h3>2. Compensación y Pagos</h3>
+                        <p>El Cliente pagará al Freelancer la cantidad total de <strong><span id="docPrice">0.00</span> <span id="docCurrency">USD</span></strong> por los servicios descritos.</p>
+                    </div>
+
+                    <div class="doc-section">
+                        <h3>3. Plazos de Entrega</h3>
+                        <p>Los servicios deberán ser completados y entregados a más tardar el <strong><span id="docDeadline">[Fecha]</span></strong>.</p>
+                    </div>
+
+                    <div class="doc-section premium-content" id="docPremiumClauses" style="display: none;">
+                        <h3>4. Cláusulas Especiales</h3>
+                        <ul id="premiumClausesList">
+                            <!-- Injected dynamically -->
+                        </ul>
+                    </div>
+
+                    <div class="doc-signatures">
+                        <div class="signature-box">
+                            <div class="signature-line"></div>
+                            <p><strong>El Freelancer</strong></p>
+                            <p><span class="sig-name" id="sigFreelancer">[Tu Nombre]</span></p>
+                        </div>
+                        <div class="signature-box">
+                            <div class="signature-line"></div>
+                            <p><strong>El Cliente</strong></p>
+                            <p><span class="sig-name" id="sigClient">[Nombre del Cliente]</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Checkout Premium -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal">
+            <button class="close-modal" id="closeModal">&times;</button>
+            <div class="modal-header">
+                <h2>Actualiza a PRO</h2>
+                <div class="price-tag">$2.00<span>USD</span></div>
+            </div>
+            <div class="modal-body">
+                <ul class="feature-list">
+                    <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg> Permite tener documentos ilimitados (no solo 1).</li>
+                    <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg> Elimina la marca de agua gigante.</li>
+                    <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg> Cláusulas legales avanzadas exclusivas.</li>
+                    <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg> Diseño de contrato de alta calidad.</li>
+                </ul>
+                <div class="payment-placeholder" id="paypal-button-container">
+                    <!-- Los botones de PayPal se renderizan aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Upsell Post-Export & Creation Limit -->
+    <div class="modal-overlay" id="upsellModal">
+        <div class="modal">
+            <button class="close-modal" id="closeUpsell">&times;</button>
+            <div class="modal-header">
+                <h2 id="upsellTitle">¡Atención!</h2>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p id="upsellMessage" style="margin-bottom: 20px; color: #cbd5e1;">Tu contrato está listo. Sin embargo, los usuarios del Plan Gratuito <strong>solo pueden tener 1 documento a la vez</strong>.</p>
+                <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #c4b5fd; margin-bottom: 10px;">Compra el Pro</h3>
+                    <p style="font-size: 13px; color: #94a3b8;">Para poder hacer varios documentos a la vez, guardarlos sin eliminarlos y quitar la marca de agua.</p>
+                </div>
+                <button class="primary-btn" id="upsellUpgradeBtn" style="background: linear-gradient(90deg, var(--primary), var(--accent)); color: white; margin-bottom: 10px;">Actualizar a PRO por $2.00</button>
+                <button class="secondary-btn" id="continueExportBtn" style="width: 100%;">Continuar exportando y borrar el anterior</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SDK de PayPal -->
+    <script
+        src="https://www.paypal.com/sdk/js?client-id=AXhOXSEflhJ0l-Lba-11JOikxaexjcG1_CQjK4jYHGVpB_FDULWW-AX3gFLFDREUwMuqISU0Wz4CQqEA&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo,card&disable-funding=paylater"
+        data-sdk-integration-source="developer-studio"
+    ></script>
+    <script src="script.js"></script>
+</body>
+</html>
