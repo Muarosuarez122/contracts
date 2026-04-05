@@ -20,13 +20,25 @@ const db = getDatabase(app);
 let currentUser = null;
 let currentFbUser = null;
 
-async function saveDB() {
+async function savePremiumToFirebase() {
     if (currentFbUser && currentUser) {
         try {
-            await set(ref(db, 'users/' + currentFbUser.uid), currentUser);
+            await set(ref(db, 'users/' + currentFbUser.uid), {
+                isContractPro: currentUser.isContractPro,
+                isManagerPro: currentUser.isManagerPro,
+                isBundle: currentUser.isBundle
+            });
         } catch (e) {
-            console.error("Error saving to Realtime Database:", e);
+            console.error("Error saving Premium settings:", e);
         }
+    }
+}
+
+function saveLocalData() {
+    if (currentFbUser && currentUser) {
+        localStorage.setItem(`contractData_${currentFbUser.uid}`, JSON.stringify({
+            documents: currentUser.documents || []
+        }));
     }
 }
 
@@ -54,11 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await signInWithEmailAndPassword(auth, email, pass);
-            // Si el login es exitoso, Firebase llama automáticamente a onAuthStateChanged
         } catch (error) {
             if (error.code.includes('invalid-credential') || error.code.includes('user-not-found') || error.code.includes('wrong-password')) {
                 try {
-                    // Intenta crearlo asumiendo que es nuevo
                     await createUserWithEmailAndPassword(auth, email, pass);
                 } catch (err2) {
                     if (err2.code === 'auth/email-already-in-use') {
@@ -80,44 +90,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     logoutBtn.addEventListener('click', () => {
-        signOut(auth).then(() => {
-            location.reload();
-        });
+        signOut(auth).then(() => location.reload());
     });
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentFbUser = user;
+            
+            let localData = JSON.parse(localStorage.getItem(`contractData_${user.uid}`)) || { documents: [] };
+
+            currentUser = {
+                email: user.email,
+                isContractPro: false,
+                isManagerPro: false,
+                isBundle: false,
+                documents: localData.documents || []
+            };
+
+            const isAdmin = user.email.toLowerCase() === 'admin' || user.email.toLowerCase() === 'admin@admin.com';
+
             try {
                 const snapshot = await get(child(ref(db), `users/${user.uid}`));
                 if (snapshot.exists()) {
-                    currentUser = snapshot.val();
-                    const isAdmin = user.email.toLowerCase() === 'admin' || user.email.toLowerCase() === 'admin@admin.com';
-                    if (isAdmin && !currentUser.isContractPro) {
-                         currentUser.isContractPro = true;
-                         currentUser.isManagerPro = true;
-                         currentUser.isBundle = true;
-                         saveDB();
-                    }
-                } else {
-                    const isAdmin = user.email.toLowerCase() === 'admin' || user.email.toLowerCase() === 'admin@admin.com';
-                    currentUser = {
-                        email: user.email,
-                        isContractPro: isAdmin,
-                        isManagerPro: isAdmin,
-                        isBundle: isAdmin,
-                        documents: [],
-                        agendaTasks: [],
-                        financeRecords: []
-                    };
-                    saveDB();
+                    const dbData = snapshot.val();
+                    currentUser.isContractPro = dbData.isContractPro || false;
+                    currentUser.isManagerPro = dbData.isManagerPro || false;
+                    currentUser.isBundle = dbData.isBundle || false;
                 }
-                showApp();
             } catch(e) {
-                authError.textContent = 'Error base de datos: ' + e.message;
-                authError.style.display = 'block';
-                loginBtn.textContent = 'Entrar / Registrarse';
+                console.warn("Realtime DB blocked or empty for free user.");
             }
+
+            if (isAdmin) {
+                currentUser.isContractPro = true;
+                currentUser.isManagerPro = true;
+                currentUser.isBundle = true;
+            }
+
+            // Immediately show app without waiting for anything else to fail
+            showApp();
         } else {
             currentUser = null;
             currentFbUser = null;
@@ -143,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentUser.documents) currentUser.documents = [];
         if (currentUser.documents.length === 0) {
             currentUser.documents.push({ id: Date.now() });
-            saveDB();
+            saveLocalData();
         }
 
         updateDocumentCount();
@@ -174,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         currentUser.documents.push({ id: Date.now() });
-        saveDB();
+        saveLocalData();
         updateDocumentCount();
         form.reset();
         updateDocument();
@@ -360,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
+                return actions.order.capture().then(async function(details) {
                     modal.classList.remove('active');
                     
                     if (selectedPlan === 'bundle') {
@@ -371,7 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentUser.isContractPro = true;
                     }
                     
+                    await savePremiumToFirebase();
                     unlockPremiumUI();
+                    alert('¡Pago exitoso! Cuenta mejorada.');
                 });
             },
             onError: function(err) {
@@ -382,8 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function unlockPremiumUI() {
-        if(currentUser) { saveDB(); }
-        
         document.getElementById('userPlanDisplay').textContent = currentUser.isBundle ? "BUNDLE PRO" : "PLAN PRO";
         document.getElementById('userPlanDisplay').className = "user-plan badge-pro";
         document.getElementById('premiumBanner').style.display = 'none';
@@ -424,6 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         watermark.style.display = 'block';
         docArea.classList.remove('premium-theme');
         
+        updateDocumentCount();
         updateDocument();
     }
 
