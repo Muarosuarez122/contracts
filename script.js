@@ -1,78 +1,138 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyArg2GNhsnlK7-JW0w-8D4tb46V2vAgZbQ",
+  authDomain: "stee-53dc1.firebaseapp.com",
+  databaseURL: "https://stee-53dc1-default-rtdb.firebaseio.com",
+  projectId: "stee-53dc1",
+  storageBucket: "stee-53dc1.firebasestorage.app",
+  messagingSenderId: "737719774829",
+  appId: "1:737719774829:web:7cabfa294cae4d6d861964",
+  measurementId: "G-ZV3L9Z34VE"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser = null;
+let currentFbUser = null;
+
+async function saveDB() {
+    if (currentFbUser && currentUser) {
+        try {
+            await set(ref(db, 'users/' + currentFbUser.uid), currentUser);
+        } catch (e) {
+            console.error("Error saving to Realtime Database:", e);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // --- AUTHENTICATION & STATE ---
-    let currentUser = null;
-    let usersDb = JSON.parse(localStorage.getItem('procontract_users')) || {};
     
+    // --- AUTHENTICATION & STATE ---
     const authView = document.getElementById('authView');
     const appView = document.getElementById('appView');
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const authError = document.getElementById('authError');
     
-    // Check if logged in locally
-    const activeSession = sessionStorage.getItem('active_user');
-    if (activeSession && usersDb[activeSession]) {
-        currentUser = usersDb[activeSession];
-        showApp();
-    }
-    
-    loginBtn.addEventListener('click', () => {
+    loginBtn.addEventListener('click', async () => {
         const email = document.getElementById('authEmail').value.trim();
         const pass = document.getElementById('authPassword').value.trim();
         
         if (!email || !pass) {
-            document.getElementById('authError').style.display = 'block';
+            authError.textContent = 'Completa ambos campos.';
+            authError.style.display = 'block';
             return;
         }
-        
-        if (!usersDb[email]) {
-            // Register new user
-            const isSpecialAdmin = email.toLowerCase() === 'admin@admin.com' || email.toLowerCase() === 'admin';
-            usersDb[email] = {
-                email: email,
-                isPremium: isSpecialAdmin, // Automatically grant PRO to admin
-                documents: []
-            };
-            saveDB();
-        } else {
-            // Force admin upgrade if user already exists
-            const isSpecialAdmin = email.toLowerCase() === 'admin@admin.com' || email.toLowerCase() === 'admin';
-            if (isSpecialAdmin) {
-                usersDb[email].isPremium = true;
-                saveDB();
+
+        loginBtn.textContent = 'Procesando...';
+        authError.style.display = 'none';
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch (error) {
+            if (error.code.includes('user-not-found') || error.code.includes('invalid-credential')) {
+                try {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                } catch (err2) {
+                    authError.textContent = 'Error: ' + err2.message;
+                    authError.style.display = 'block';
+                    loginBtn.textContent = 'Entrar / Registrarse';
+                }
+            } else {
+                authError.textContent = 'Error: ' + error.message;
+                authError.style.display = 'block';
+                loginBtn.textContent = 'Entrar / Registrarse';
             }
         }
-        
-        currentUser = usersDb[email];
-        sessionStorage.setItem('active_user', email);
-        showApp();
     });
     
     logoutBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('active_user');
-        currentUser = null;
-        appView.style.display = 'none';
-        authView.style.display = 'flex';
-        document.getElementById('authEmail').value = '';
-        document.getElementById('authPassword').value = '';
+        signOut(auth).then(() => {
+            location.reload();
+        });
     });
 
-    function saveDB() {
-        localStorage.setItem('procontract_users', JSON.stringify(usersDb));
-    }
-    
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentFbUser = user;
+            try {
+                const snapshot = await get(child(ref(db), `users/${user.uid}`));
+                if (snapshot.exists()) {
+                    currentUser = snapshot.val();
+                    const isAdmin = user.email.toLowerCase() === 'admin' || user.email.toLowerCase() === 'admin@admin.com';
+                    if (isAdmin && !currentUser.isContractPro) {
+                         currentUser.isContractPro = true;
+                         currentUser.isManagerPro = true;
+                         currentUser.isBundle = true;
+                         saveDB();
+                    }
+                } else {
+                    const isAdmin = user.email.toLowerCase() === 'admin' || user.email.toLowerCase() === 'admin@admin.com';
+                    currentUser = {
+                        email: user.email,
+                        isContractPro: isAdmin,
+                        isManagerPro: isAdmin,
+                        isBundle: isAdmin,
+                        documents: [],
+                        agendaTasks: [],
+                        financeRecords: []
+                    };
+                    saveDB();
+                }
+                showApp();
+            } catch(e) {
+                authError.textContent = 'Error base de datos: ' + e.message;
+                authError.style.display = 'block';
+                loginBtn.textContent = 'Entrar / Registrarse';
+            }
+        } else {
+            currentUser = null;
+            currentFbUser = null;
+            appView.style.display = 'none';
+            authView.style.display = 'flex';
+            loginBtn.textContent = 'Entrar / Registrarse';
+        }
+    });
+
     function showApp() {
         authView.style.display = 'none';
         appView.style.display = 'flex';
         document.getElementById('userEmailDisplay').textContent = currentUser.email;
         document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
         
-        if (currentUser.isPremium) {
+        if (currentUser.isContractPro || currentUser.isBundle) {
             unlockPremiumUI();
         } else {
             lockPremiumUI();
         }
 
         // Auto create 1st document if empty
+        if (!currentUser.documents) currentUser.documents = [];
         if (currentUser.documents.length === 0) {
             currentUser.documents.push({ id: Date.now() });
             saveDB();
@@ -87,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function updateDocumentCount() {
         const count = currentUser.documents.length;
-        docCountBadge.textContent = currentUser.isPremium ? (count + ' / ∞') : (count + ' / 1');
+        docCountBadge.textContent = (currentUser.isContractPro || currentUser.isBundle) ? (count + ' / ∞') : (count + ' / 1');
     }
 
     const upsellModal = document.getElementById('upsellModal');
@@ -98,14 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const upsellMessage = document.getElementById('upsellMessage');
     
     newContractBtn.addEventListener('click', () => {
-        if (!currentUser.isPremium && currentUser.documents.length >= 1) {
+        if (!(currentUser.isContractPro || currentUser.isBundle) && currentUser.documents.length >= 1) {
             upsellTitle.textContent = 'Límite de Documentos';
             upsellMessage.innerHTML = 'Tu cuenta Gratuita permite un máximo de <strong>1 documento guardado</strong>. Para mantener múltiples contratos y crear uno adicional, necesitas ser PRO.';
             upsellModal.classList.add('active');
             return;
         }
         
-        // Add new blank document logic for PRO users
         currentUser.documents.push({ id: Date.now() });
         saveDB();
         updateDocumentCount();
@@ -120,13 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     continueExportBtn.addEventListener('click', () => {
         upsellModal.classList.remove('active');
-        // Actually print
         window.print();
     });
 
     upsellUpgradeBtn.addEventListener('click', () => {
         upsellModal.classList.remove('active');
-        modal.classList.add('active'); // show paypal modal
+        modal.classList.add('active');
     });
 
     // --- EXISTING APP & DOM ELEMENTS ---
@@ -172,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const premiumClausesContainer = document.getElementById('docPremiumClauses');
     const premiumClausesList = document.getElementById('premiumClausesList');
     
-    // Set Initial Config
     const today = new Date();
     outputs.date.textContent = today.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -202,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updatePremiumClauses() {
-        if (!currentUser || !currentUser.isPremium) {
+        if (!currentUser || !(currentUser.isContractPro || currentUser.isBundle)) {
             premiumClausesContainer.style.display = 'none';
             return;
         }
@@ -244,10 +301,28 @@ document.addEventListener('DOMContentLoaded', () => {
         customizers[key].text.addEventListener('input', updateDocument);
     });
 
-    // --- PAYPAL CHECKOUT LOGIC ---
+    // --- PAYPAL CHECKOUT LOGIC WITH BUNDLE ---
     const upgradeBtn = document.getElementById('upgradeBtn');
     const modal = document.getElementById('checkoutModal');
     const closeModal = document.getElementById('closeModal');
+    
+    let selectedAmount = '4.00';
+    let selectedPlan = 'bundle';
+
+    if(document.getElementById('optContract')){
+        document.getElementById('optContract').addEventListener('click', function() {
+            this.classList.add('selected');
+            document.getElementById('optBundle').classList.remove('selected');
+            selectedAmount = '2.00';
+            selectedPlan = 'contract';
+        });
+        document.getElementById('optBundle').addEventListener('click', function() {
+            this.classList.add('selected');
+            document.getElementById('optContract').classList.remove('selected');
+            selectedAmount = '4.00';
+            selectedPlan = 'bundle';
+        });
+    }
 
     upgradeBtn.addEventListener('click', () => {
         modal.classList.add('active');
@@ -269,17 +344,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 return actions.order.create({
                     purchase_units: [{
                         amount: {
-                            value: '2.00',
+                            value: selectedAmount,
                             currency_code: 'USD'
                         },
-                        description: 'Licencia Premium ProContract'
+                        description: `Licencia ${selectedPlan.toUpperCase()}`
                     }]
                 });
             },
             onApprove: function(data, actions) {
                 return actions.order.capture().then(function(details) {
-                    console.log('Pago completado por', details.payer.name.given_name);
                     modal.classList.remove('active');
+                    
+                    if (selectedPlan === 'bundle') {
+                        currentUser.isBundle = true;
+                        currentUser.isContractPro = true;
+                        currentUser.isManagerPro = true;
+                    } else {
+                        currentUser.isContractPro = true;
+                    }
+                    
                     unlockPremiumUI();
                 });
             },
@@ -291,12 +374,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function unlockPremiumUI() {
-        if(currentUser) {
-            currentUser.isPremium = true;
-            saveDB();
-        }
+        if(currentUser) { saveDB(); }
         
-        document.getElementById('userPlanDisplay').textContent = "PLAN PRO";
+        document.getElementById('userPlanDisplay').textContent = currentUser.isBundle ? "BUNDLE PRO" : "PLAN PRO";
         document.getElementById('userPlanDisplay').className = "user-plan badge-pro";
         document.getElementById('premiumBanner').style.display = 'none';
         
@@ -304,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
         premiumSection.classList.add('unlocked');
         Object.values(premiumInputs).forEach(input => input.disabled = false);
         
-        // Auto check advanced clauses
         premiumInputs.ip.checked = true;
         customizers.ip.wrapper.style.display = 'block';
         premiumInputs.nda.checked = true;
@@ -340,10 +419,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDocument();
     }
 
-    // --- PRINT / EXPORT LOGIC ---
     const printBtn = document.getElementById('printBtn');
     printBtn.addEventListener('click', () => {
-        if (!currentUser.isPremium) {
+        if (!(currentUser.isContractPro || currentUser.isBundle)) {
             upsellTitle.textContent = '¡Documento Listo!';
             upsellMessage.innerHTML = 'Tu contrato está en progreso. Sin embargo, recuerda que como usuario gratuito <strong>solo puedes tener 1 documento guardado</strong> y éste tiene marca de agua.';
             upsellModal.classList.add('active');
@@ -351,4 +429,5 @@ document.addEventListener('DOMContentLoaded', () => {
             window.print();
         }
     });
+
 });
