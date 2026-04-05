@@ -138,6 +138,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    let activeDocIndex = 0;
+
+    function renderSavedContracts() {
+        const list = document.getElementById('savedContractsList');
+        if (!list) return;
+        list.innerHTML = '';
+        
+        currentUser.documents.forEach((doc, idx) => {
+            const div = document.createElement('div');
+            div.className = `saved-doc-item ${idx === activeDocIndex ? 'active' : ''}`;
+            
+            const title = doc.data && doc.data.projectName ? doc.data.projectName : `Contrato #${idx + 1}`;
+            const dateStr = new Date(doc.id || Date.now()).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            
+            div.innerHTML = `<span class="doc-item-title">${title}</span><span class="doc-item-date">${dateStr}</span>`;
+            
+            div.addEventListener('click', () => {
+                activeDocIndex = idx;
+                loadDocumentToForm(doc);
+                renderSavedContracts();
+            });
+            list.appendChild(div);
+        });
+    }
+
+    function loadDocumentToForm(doc) {
+        document.getElementById('contractForm').reset();
+        
+        if (doc && doc.data) {
+            const map = {
+                'freelancerName': doc.data.freelancerName,
+                'clientName': doc.data.clientName,
+                'projectName': doc.data.projectName,
+                'projectDescription': doc.data.projectDescription,
+                'price': doc.data.price,
+                'currency': doc.data.currency,
+                'deadline': doc.data.deadline
+            };
+            for (const [id, val] of Object.entries(map)) {
+                if (val && document.getElementById(id)) document.getElementById(id).value = val;
+            }
+        }
+        
+        if (currentUser.isContractPro || currentUser.isBundle) {
+            if (doc && doc.premiumData) {
+                document.getElementById('clauseIP').checked = doc.premiumData.ip ?? true;
+                if (doc.premiumData.ipText) document.getElementById('textIP').value = doc.premiumData.ipText;
+                document.getElementById('customIP').style.display = doc.premiumData.ip !== false ? 'block' : 'none';
+
+                document.getElementById('clauseNDA').checked = doc.premiumData.nda ?? true;
+                if (doc.premiumData.ndaText) document.getElementById('textNDA').value = doc.premiumData.ndaText;
+                document.getElementById('customNDA').style.display = doc.premiumData.nda !== false ? 'block' : 'none';
+
+                document.getElementById('clauseLateFee').checked = doc.premiumData.lateFee ?? false;
+                if (doc.premiumData.lateFeeText) document.getElementById('textLateFee').value = doc.premiumData.lateFeeText;
+                document.getElementById('customLateFee').style.display = doc.premiumData.lateFee ? 'block' : 'none';
+            }
+        }
+        
+        if (typeof updateDocument === 'function') updateDocument();
+    }
+
     function showApp() {
         authView.style.display = 'none';
         appView.style.display = 'flex';
@@ -146,17 +208,37 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (currentUser.isContractPro || currentUser.isBundle) {
             unlockPremiumUI();
+            if (currentUser.documents && currentUser.documents.length > 0) {
+                const activeDoc = currentUser.documents[currentUser.documents.length - 1];
+                if (activeDoc && activeDoc.premiumData) {
+                    document.getElementById('clauseIP').checked = activeDoc.premiumData.ip ?? true;
+                    if (activeDoc.premiumData.ipText) document.getElementById('textIP').value = activeDoc.premiumData.ipText;
+                    document.getElementById('customIP').style.display = activeDoc.premiumData.ip !== false ? 'block' : 'none';
+
+                    document.getElementById('clauseNDA').checked = activeDoc.premiumData.nda ?? true;
+                    if (activeDoc.premiumData.ndaText) document.getElementById('textNDA').value = activeDoc.premiumData.ndaText;
+                    document.getElementById('customNDA').style.display = activeDoc.premiumData.nda !== false ? 'block' : 'none';
+
+                    document.getElementById('clauseLateFee').checked = activeDoc.premiumData.lateFee ?? false;
+                    if (activeDoc.premiumData.lateFeeText) document.getElementById('textLateFee').value = activeDoc.premiumData.lateFeeText;
+                    document.getElementById('customLateFee').style.display = activeDoc.premiumData.lateFee ? 'block' : 'none';
+                }
+            }
         } else {
             lockPremiumUI();
         }
 
-        // Auto create 1st document if empty
+        // Auto create 1st document if empty or load existing
         if (!currentUser.documents) currentUser.documents = [];
         if (currentUser.documents.length === 0) {
-            currentUser.documents.push({ id: Date.now() });
+            currentUser.documents.push({ id: Date.now(), data: {}, premiumData: {} });
             saveLocalData();
         }
-
+        
+        activeDocIndex = currentUser.documents.length - 1;
+        loadDocumentToForm(currentUser.documents[activeDocIndex]);
+        renderSavedContracts();
+        
         updateDocumentCount();
     }
 
@@ -184,11 +266,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        currentUser.documents.push({ id: Date.now() });
+        currentUser.documents.push({ id: Date.now(), data: {}, premiumData: {} });
         saveLocalData();
+        activeDocIndex = currentUser.documents.length - 1;
+        loadDocumentToForm(currentUser.documents[activeDocIndex]);
+        renderSavedContracts();
         updateDocumentCount();
-        form.reset();
-        updateDocument();
         alert('Nuevo documento creado. Tienes ' + currentUser.documents.length + ' en total.');
     });
 
@@ -275,6 +358,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updatePremiumClauses();
+
+        // Persist form payload for persistence
+        if (currentUser && currentUser.documents && currentUser.documents.length > 0) {
+            const activeIndex = activeDocIndex;
+            currentUser.documents[activeIndex] = {
+                id: currentUser.documents[activeIndex].id,
+                data: {
+                    freelancerName: inputs.freelancerName.value,
+                    clientName: inputs.clientName.value,
+                    projectName: inputs.projectName.value,
+                    projectDescription: inputs.projectDescription.value,
+                    price: inputs.price.value,
+                    currency: inputs.currency.value,
+                    deadline: inputs.deadline.value
+                },
+                premiumData: {
+                    ip: premiumInputs.ip.checked,
+                    ipText: customizers.ip.text.value,
+                    nda: premiumInputs.nda.checked,
+                    ndaText: customizers.nda.text.value,
+                    lateFee: premiumInputs.lateFee.checked,
+                    lateFeeText: customizers.lateFee.text.value
+                }
+            };
+            saveLocalData();
+            
+            // Only update titles in the sidebar without destroying the entire HTML to avoid focus loss
+            const listItems = document.querySelectorAll('.saved-doc-item .doc-item-title');
+            if(listItems[activeIndex]) {
+                listItems[activeIndex].textContent = inputs.projectName.value || `Contrato #${activeIndex + 1}`;
+            }
+        }
     }
 
     function updatePremiumClauses() {

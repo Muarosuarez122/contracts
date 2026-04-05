@@ -242,15 +242,25 @@ body {
 }
 
 .secondary-btn {
-    width: 100%; padding: 12px;
+    width: 100%; padding: 12px; margin-bottom: 12px;
     background: transparent; border: 1px dashed var(--border-strong);
     color: var(--text-main); font-weight: 600; font-size: 14px;
     border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
 }
 .secondary-btn:hover {
-    background: rgba(255,255,255,0.03); border-color: var(--text-main);
+    background: rgba(99, 102, 241, 0.1); border-color: var(--primary); color: var(--primary);
     transform: translateY(-1px);
 }
+
+.saved-contracts-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+.saved-contracts-list::-webkit-scrollbar { width: 4px; }
+.saved-contracts-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+.saved-doc-item { padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 4px; position:relative; overflow:hidden;}
+.saved-doc-item:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-2px); }
+.saved-doc-item.active { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); }
+.saved-doc-item.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--primary); }
+.doc-item-title { font-size: 13px; font-weight: 600; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-item-date { font-size: 11px; color: var(--text-muted); }
 
 .upgrade-btn {
     width: 100%; padding: 12px; border: none;
