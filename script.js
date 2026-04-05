@@ -168,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (doc && doc.data) {
             const map = {
+                'contractTitle': doc.data.contractTitle,
                 'freelancerName': doc.data.freelancerName,
                 'clientName': doc.data.clientName,
                 'projectName': doc.data.projectName,
@@ -292,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EXISTING APP & DOM ELEMENTS ---
     const form = document.getElementById('contractForm');
     const inputs = {
+        contractTitle: document.getElementById('contractTitle'),
         freelancerName: document.getElementById('freelancerName'),
         clientName: document.getElementById('clientName'),
         projectName: document.getElementById('projectName'),
@@ -314,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const outputs = {
+        contractTitle: document.getElementById('docContractTitle'),
         freelancerName: document.getElementById('docFreelancerName'),
         clientName: document.getElementById('docClientName'),
         projectName: document.getElementById('docProjectName'),
@@ -336,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     outputs.date.textContent = today.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 
     function updateDocument() {
+        outputs.contractTitle.textContent = inputs.contractTitle.value || 'Contrato de Servicios Freelance';
         outputs.freelancerName.textContent = inputs.freelancerName.value || '[Tu Nombre]';
         outputs.clientName.textContent = inputs.clientName.value || '[Nombre del Cliente]';
         
@@ -365,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser.documents[activeIndex] = {
                 id: currentUser.documents[activeIndex].id,
                 data: {
+                    contractTitle: inputs.contractTitle.value,
                     freelancerName: inputs.freelancerName.value,
                     clientName: inputs.clientName.value,
                     projectName: inputs.projectName.value,

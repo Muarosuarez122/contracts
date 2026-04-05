@@ -71,6 +71,10 @@
                 <div class="form-section">
                     <h2>1. Información Básica</h2>
                     <div class="input-group">
+                        <label for="contractTitle">Encabezado del Contrato</label>
+                        <input type="text" id="contractTitle" placeholder="Ej. Contrato de Servicios Freelance" value="Contrato de Servicios Freelance" required>
+                    </div>
+                    <div class="input-group">
                         <label for="freelancerName">Tu Nombre / Empresa</label>
                         <input type="text" id="freelancerName" placeholder="Ej. Juan Pérez" required>
                     </div>
@@ -173,7 +177,7 @@
                     <div class="watermark" id="watermark">GENERADO CON PROCONTRACT FREE</div>
                     
                     <div class="doc-header">
-                        <h1 class="doc-title">Contrato de Servicios Freelance</h1>
+                        <h1 class="doc-title" id="docContractTitle">Contrato de Servicios Freelance</h1>
                         <p class="doc-date">Fecha: <span id="docCurrentDate">__/__/____</span></p>
                     </div>
 
