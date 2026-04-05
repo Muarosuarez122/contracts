@@ -54,17 +54,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await signInWithEmailAndPassword(auth, email, pass);
+            // Si el login es exitoso, Firebase llama automáticamente a onAuthStateChanged
         } catch (error) {
-            if (error.code.includes('user-not-found') || error.code.includes('invalid-credential')) {
+            if (error.code.includes('invalid-credential') || error.code.includes('user-not-found') || error.code.includes('wrong-password')) {
                 try {
+                    // Intenta crearlo asumiendo que es nuevo
                     await createUserWithEmailAndPassword(auth, email, pass);
                 } catch (err2) {
-                    authError.textContent = 'Error: ' + err2.message;
+                    if (err2.code === 'auth/email-already-in-use') {
+                        authError.textContent = 'Contraseña incorrecta. El usuario ya existe.';
+                    } else if (err2.code === 'auth/weak-password') {
+                        authError.textContent = 'La contraseña es muy débil (mínimo 6 caracteres).';
+                    } else {
+                        authError.textContent = 'Error: ' + err2.message;
+                    }
                     authError.style.display = 'block';
                     loginBtn.textContent = 'Entrar / Registrarse';
                 }
             } else {
-                authError.textContent = 'Error: ' + error.message;
+                authError.textContent = 'Error de autenticación: ' + error.message;
                 authError.style.display = 'block';
                 loginBtn.textContent = 'Entrar / Registrarse';
             }
